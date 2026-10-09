@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fafafa">
+<title>Daily Spend Tracker</title>
+<style>
+  :root{--bg:#fafafa;--card:#fff;--text:#111;--muted:#8a8f98;--line:#ececec;--accent:#111;--accent-text:#fff;--danger:#d1344b;--primary:var(--accent)}
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#0e0e10;--card:#16161a;--text:#f2f2f3;--muted:#8b8f99;--line:#26262b;--accent:#f2f2f3;--accent-text:#0e0e10}
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.45;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+  header{max-width:960px;margin:0 auto;padding:20px 16px 8px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  header h1{font-size:1.25rem;font-weight:700;letter-spacing:-.01em}
+  .hbtns{display:flex;align-items:center;gap:10px;min-width:0}
+  #status{font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #gearBtn{width:auto;margin:0;padding:7px 14px;font-size:.8rem;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:99px;font-weight:500}
+  main{max-width:960px;margin:0 auto;padding:8px 16px 40px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+  main>*{min-width:0}
+  @media (min-width:820px){ main{grid-template-columns:320px minmax(0,1fr);align-items:start;gap:16px} }
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+  h2{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px}
+  label{display:block;font-size:.75rem;color:var(--muted);margin:0 0 6px}
+  input,select,button{font:inherit;font-size:16px;width:100%;min-width:0;max-width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);outline:none}
+  input[type=date],input[type=month]{min-height:46px}
+  input:focus,select:focus{border-color:var(--accent)}
+  button{cursor:pointer;border:none;background:var(--accent);color:var(--accent-text);font-weight:600;margin-top:16px;font-size:.95rem;padding:13px}
+  button.ghost{background:transparent;color:var(--text);border:1px solid var(--line);margin-top:0;font-weight:500}
+  button.danger{color:var(--danger)}
+  .btnrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}
+  .row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+  .row2>div{min-width:0}
+  .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px}
+  @media (min-width:600px){ .stats{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  .stat{padding:12px 0;border-top:1px solid var(--line);min-width:0}
+  .stat small{display:block;color:var(--muted);font-size:.72rem;margin-bottom:2px}
+  .stat b{font-size:1.3rem;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
+  .filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:18px 0}
+  ul{list-style:none}
+  li.item{display:flex;align-items:center;gap:8px;padding:13px 0;border-top:1px solid var(--line)}
+  .info{flex:1;min-width:0}
+  .info b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .info small{color:var(--muted);font-size:.78rem}
+  .amt{font-weight:600;white-space:nowrap}
+  .icon{width:auto;margin:0;padding:8px;background:transparent;color:var(--muted);border:none;font-size:.8rem;font-weight:500}
+  .icon.edit{color:var(--text)}
+  .bar-row{margin:12px 0;font-size:.85rem}
+  .bar-row .track{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px}
+  .bar-row .fill{height:100%;background:var(--accent);border-radius:4px}
+  .empty{text-align:center;color:var(--muted);padding:28px 0;font-size:.9rem}
+  .full{grid-column:1/-1}
+  #ghCard[hidden]{display:none}
+  .hint{font-size:.75rem;color:var(--muted);margin-top:14px}
+  #filteredTotal{float:right;color:var(--text);font-size:.9rem;text-transform:none;letter-spacing:0;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>Spend</h1>
+  <div class="hbtns">
+    <span id="status">Local only</span>
+    <button id="gearBtn" aria-label="GitHub settings">GitHub</button>
+  </div>
+</header>
+
+<main>
+  <!-- GITHUB SETTINGS -->
+  <section class="card full" id="ghCard" hidden>
+    <h2>GitHub Sync</h2>
+    <div class="row2">
+      <div><label>Owner</label><input id="ghOwner" placeholder="your-username"></div>
+      <div><label>Data repo</label><input id="ghRepo" placeholder="spend-data"></div>
+      <div><label>Branch</label><input id="ghBranch" value="main"></div>
+      <div><label>CSV path</label><input id="ghPath" value="data/expenses.csv"></div>
+    </div>
+    <label>Access token</label>
+    <input id="ghToken" type="password" placeholder="github_pat_..." autocomplete="off">
+    <button id="ghSave">Save &amp; Connect</button>
+    <div class="btnrow">
+      <button class="ghost" id="ghSyncNow">Sync now</button>
+      <button class="ghost danger" id="ghDisconnect">Disconnect</button>
+    </div>
+    <p class="hint">Use a fine-grained token (Contents: read &amp; write) limited to your data repo. Saved in this browser and reconnected automatically. Keep the data repo private.</p>
+  </section>
+
+  <!-- ADD FORM -->
+  <section class="card">
+    <h2 id="formTitle">Add Expense</h2>
+    <form id="form">
+      <div class="row2">
+        <div><label>Amount (₹)</label><input id="amount" type="number" inputmode="decimal" step="0.01" min="0.01" required placeholder="0.00"></div>
+        <div><label>Category</label><select id="category"></select></div>
+        <div><label>Date</label><input id="date" type="date" required></div>
+        <div><label>Note</label><input id="note" type="text" maxlength="60" placeholder="Optional"></div>
+      </div>
+      <button type="submit" id="saveBtn">Add Expense</button>
+      <button type="button" class="ghost" id="cancelEdit" hidden style="margin-top:10px">Cancel</button>
+    </form>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="card">
+    <h2>Overview</h2>
+    <div class="stats">
+      <div class="stat"><small>Today</small><b id="sToday">₹0</b></div>
+      <div class="stat"><small>This Week</small><b id="sWeek">₹0</b></div>
+      <div class="stat"><small>This Month</small><b id="sMonth">₹0</b></div>
+      <div class="stat"><small>All Time</small><b id="sAll">₹0</b></div>
+    </div>
+    <div class="filters">
+      <div><label>Month</label><input type="month" id="fMonth"></div>
+      <div><label>Category</label><select id="fCat"></select></div>
+    </div>
+    <h2>By Category</h2>
+    <div id="breakdown"></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="card full">
+    <h2>History <span id="filteredTotal"></span></h2>
+    <ul id="list"></ul>
+    <div class="btnrow" style="margin-top:14px">
+      <button class="ghost" id="exportBtn">Export CSV</button>
+      <button class="ghost danger" id="clearBtn">Clear all</button>
+    </div>
+  </section>
+</main>
+
+<script>
+const CATS = { Food:'🍔', Transport:'🚌', Shopping:'🛍️', Bills:'🧾', Health:'💊', Entertainment:'🎬', Education:'📚', Other:'📦' };
+const KEY = 'daily_spend_v2', CFG_KEY = 'daily_spend_gh_cfg', DIRTY_KEY = 'daily_spend_dirty';
+const $ = id => document.getElementById(id);
+const fmt = n => '₹' + Number(n).toLocaleString('en-IN', {maximumFractionDigits:2});
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- storage ---------- */
+function loadLocal(){
+  try { return JSON.parse(localStorage.getItem(KEY)) || JSON.parse(localStorage.getItem('daily_spend_v1')) || []; } catch { return []; }
+}
+let expenses = loadLocal();
+let cfg = (()=>{ try { return JSON.parse(localStorage.getItem(CFG_KEY)); } catch { return null; } })();
+let dirty = localStorage.getItem(DIRTY_KEY) === '1';
+let lastSha = null, pushTimer = null, busy = false;
+
+function save(markDirty = true){
+  localStorage.setItem(KEY, JSON.stringify(expenses));
+  if(markDirty){ setDirty(true); schedulePush(); }
+}
+function setDirty(v){ dirty = v; localStorage.setItem(DIRTY_KEY, v ? '1' : '0'); }
+
+/* ---------- CSV ---------- */
+const HEADER = ['id','date','category','amount','note'];
+function toCSV(list){
+  const q = v => /[",\n\r]/.test(String(v)) ? '"' + String(v).replace(/"/g,'""') + '"' : String(v);
+  const sorted = [...list].sort((a,b)=> a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  return [HEADER.join(','), ...sorted.map(e => [e.id,e.date,e.category,e.amount,e.note].map(q).join(','))].join('\n') + '\n';
+}
+function parseCSV(text){
+  const rows = []; let row = [], cur = '', inQ = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQ){
+      if(c === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else inQ = false; }
+      else cur += c;
+    } else if(c === '"') inQ = true;
+    else if(c === ','){ row.push(cur); cur = ''; }
+    else if(c === '\n' || c === '\r'){
+      if(c === '\r' && text[i+1] === '\n') i++;
+      row.push(cur); cur = ''; if(row.length > 1 || row[0] !== '') rows.push(row); row = [];
+    } else cur += c;
+  }
+  if(cur !== '' || row.length){ row.push(cur); rows.push(row); }
+  if(!rows.length) return [];
+  const h = rows[0].map(x => x.trim().toLowerCase());
+  const ix = n => h.indexOf(n);
+  return rows.slice(1).map((r,k) => ({
+    id: (ix('id')>=0 && r[ix('id')]) || ('imp' + Date.now() + k),
+    date: r[ix('date')] || todayStr(),
+    category: CATS[r[ix('category')]] ? r[ix('category')] : 'Other',
+    amount: parseFloat(r[ix('amount')]) || 0,
+    note: r[ix('note')] || ''
+  })).filter(e => e.amount > 0);
+}
+
+/* ---------- GitHub API ---------- */
+const b64enc = s => { const b = new TextEncoder().encode(s); let t=''; b.forEach(x=>t+=String.fromCharCode(x)); return btoa(t); };
+const b64dec = s => { const t = atob(s.replace(/\s/g,'')); return new TextDecoder().decode(Uint8Array.from(t, c=>c.charCodeAt(0))); };
+
+function apiUrl(){ return `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${cfg.path.split('/').map(encodeURIComponent).join('/')}`; }
+function headers(){
+  const h = {'Accept':'application/vnd.github+json'};
+  if(cfg.token) h['Authorization'] = 'Bearer ' + cfg.token;
+  return h;
+}
+async function ghGet(){
+  const r = await fetch(`${apiUrl()}?ref=${encodeURIComponent(cfg.branch)}&t=${Date.now()}`, {headers: headers(), cache:'no-store'});
+  if(r.status === 404) return {sha:null, text:null};
+  if(!r.ok) throw new Error('GitHub ' + r.status);
+  const j = await r.json();
+  return {sha: j.sha, text: b64dec(j.content)};
+}
+async function ghPut(text, sha){
+  const body = {message: 'Update expenses ' + new Date().toISOString(), content: b64enc(text), branch: cfg.branch};
+  if(sha) body.sha = sha;
+  const r = await fetch(apiUrl(), {method:'PUT', headers:{...headers(),'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  if(r.status === 409 || r.status === 422) throw new Error('conflict');
+  if(!r.ok) throw new Error('GitHub ' + r.status);
+  return (await r.json()).content.sha;
+}
+
+/* ---------- sync logic ---------- */
+function setStatus(t, color){ const s = $('status'); s.textContent = t; s.style.color = color || ''; }
+
+function schedulePush(){
+  if(!cfg || !cfg.token) { setStatus(cfg ? 'Read-only (no token)' : 'Local only'); return; }
+  setStatus('Unsaved…', '#b45309');
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(sync, 1500);
+}
+
+async function sync(retry = 0){
+  if(!cfg || busy || !unlocked) return;
+  if(!navigator.onLine){ setStatus('Offline – will sync later', '#b45309'); return; }
+  busy = true; setStatus('Syncing…');
+  try {
+    const remote = await ghGet();
+    const remoteList = remote.text ? parseCSV(remote.text) : [];
+
+    if(dirty && cfg.token){
+      // another device changed the file since we last saw it → keep its new rows too
+      if(remote.sha && lastSha && remote.sha !== lastSha){
+        const have = new Set(expenses.map(e=>e.id));
+        remoteList.forEach(e => { if(!have.has(e.id)) expenses.push(e); });
+        save(false);
+      }
+      // first connect: local dirty and remote has data not seen yet
+      if(remote.sha && !lastSha){
+        const have = new Set(expenses.map(e=>e.id));
+        remoteList.forEach(e => { if(!have.has(e.id)) expenses.push(e); });
+        save(false);
+      }
+      lastSha = await ghPut(toCSV(expenses), remote.sha);
+      setDirty(false);
+      setStatus('Saved to GitHub ✓');
+    } else {
+      // not dirty: GitHub is the source of truth
+      if(remote.text !== null){
+        expenses = remoteList; save(false);
+      } else if(cfg.token && expenses.length){
+        lastSha = await ghPut(toCSV(expenses), null);   // create file
+      }
+      if(remote.sha) lastSha = remote.sha;
+      setStatus(cfg.token ? 'Synced ✓' : 'Read-only ✓');
+    }
+    render();
+  } catch(err){
+    if(err.message === 'conflict' && retry < 2){ busy = false; return sync(retry + 1); }
+    setStatus(err.message === 'GitHub 401' ? 'Bad token' : err.message === 'GitHub 404' ? 'Repo not found' : 'Sync failed – will retry', '#be123c');
+  } finally { busy = false; }
+}
+
+/* ---------- settings UI ---------- */
+function fillCfg(){
+  if(!cfg) return;
+  $('ghOwner').value = cfg.owner; $('ghRepo').value = cfg.repo;
+  $('ghBranch').value = cfg.branch; $('ghPath').value = cfg.path; $('ghToken').value = cfg.token || '';
+}
+$('gearBtn').onclick = () => { $('ghCard').hidden = !$('ghCard').hidden; };
+$('ghSave').onclick = async () => {
+  const c = { owner:$('ghOwner').value.trim(), repo:$('ghRepo').value.trim(),
+              branch:$('ghBranch').value.trim() || 'main', path:$('ghPath').value.trim() || 'data/expenses.csv',
+              token:$('ghToken').value.trim() };
+  if(!c.owner || !c.repo) return alert('Enter owner and repo name');
+  cfg = c; await persistCfg(); lastSha = null;
+  if(expenses.length && cfg.token) setDirty(true);   // push existing local data on first connect
+  $('ghCard').hidden = true; sync();
+};
+$('ghSyncNow').onclick = () => sync();
+$('ghDisconnect').onclick = () => {
+  if(!confirm('Disconnect GitHub? Local data stays on this device.')) return;
+  localStorage.removeItem(CFG_KEY); cfg = null; lastSha = null; setStatus('Local only');
+  ['ghOwner','ghRepo','ghToken'].forEach(i => $(i).value = '');
+};
+
+/* ---------- expense UI ---------- */
+$('category').innerHTML = Object.keys(CATS).map(c=>`<option>${c}</option>`).join('');
+$('fCat').innerHTML = '<option value="">All</option>' + Object.keys(CATS).map(c=>`<option>${c}</option>`).join('');
+$('date').value = todayStr();
+$('fMonth').value = todayStr().slice(0,7);
+let editId = null;
+
+$('form').addEventListener('submit', e=>{
+  e.preventDefault();
+  const item = { id: editId || Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    amount: parseFloat($('amount').value), category: $('category').value, date: $('date').value, note: $('note').value.trim() };
+  if(!(item.amount > 0)) return;
+  expenses = editId ? expenses.map(x => x.id === editId ? item : x) : [...expenses, item];
+  save(); resetForm(); render();
+});
+function resetForm(){
+  editId = null; $('form').reset(); $('date').value = todayStr();
+  $('formTitle').textContent = 'Add Expense'; $('saveBtn').textContent = 'Add Expense'; $('cancelEdit').hidden = true;
+}
+$('cancelEdit').onclick = resetForm;
+function startEdit(id){
+  const x = expenses.find(e => e.id === id); if(!x) return;
+  editId = id; $('amount').value = x.amount; $('category').value = x.category; $('date').value = x.date; $('note').value = x.note;
+  $('formTitle').textContent = 'Edit Expense'; $('saveBtn').textContent = 'Update Expense'; $('cancelEdit').hidden = false;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function del(id){ if(!confirm('Delete this expense?')) return; expenses = expenses.filter(e => e.id !== id); save(); render(); }
+
+const sum = a => a.reduce((s,e)=>s+e.amount,0);
+function weekStart(){ const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return d.toLocaleDateString('en-CA'); }
+
+function render(){
+  const t = todayStr(), m = t.slice(0,7), w = weekStart();
+  $('sToday').textContent = fmt(sum(expenses.filter(e=>e.date===t)));
+  $('sWeek').textContent  = fmt(sum(expenses.filter(e=>e.date>=w && e.date<=t)));
+  $('sMonth').textContent = fmt(sum(expenses.filter(e=>e.date.startsWith(m))));
+  $('sAll').textContent   = fmt(sum(expenses));
+
+  const fm = $('fMonth').value, fc = $('fCat').value;
+  const filtered = expenses.filter(e => (!fm || e.date.startsWith(fm)) && (!fc || e.category===fc))
+    .sort((a,b)=> b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  $('filteredTotal').textContent = fmt(sum(filtered));
+
+  const totals = {}; filtered.forEach(e => totals[e.category] = (totals[e.category]||0) + e.amount);
+  const grand = sum(filtered) || 1;
+  $('breakdown').innerHTML = Object.entries(totals).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`
+    <div class="bar-row"><div style="display:flex;justify-content:space-between"><span>${c}</span><b>${fmt(v)} · ${Math.round(v/grand*100)}%</b></div>
+    <div class="track"><div class="fill" style="width:${v/grand*100}%"></div></div></div>`).join('') || '<div class="empty">No data</div>';
+
+  $('list').innerHTML = filtered.length ? filtered.map(e=>`
+    <li class="item">
+      <div class="info"><b>${esc(e.note) || e.category}</b><small>${e.category} · ${new Date(e.date+'T00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</small></div>
+      <div class="amt">${fmt(e.amount)}</div>
+      <button class="icon edit" onclick="startEdit('${e.id}')" aria-label="Edit">Edit</button>
+      <button class="icon" onclick="del('${e.id}')" aria-label="Delete">✕</button></li>`).join('')
+    : '<div class="empty">No expenses yet</div>';
+}
+$('fMonth').onchange = $('fCat').onchange = render;
+
+$('exportBtn').onclick = () => {
+  if(!expenses.length) return alert('Nothing to export');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([toCSV(expenses)],{type:'text/csv'}));
+  a.download = 'expenses.csv'; a.click();
+};
+$('clearBtn').onclick = () => { if(confirm('Delete ALL expenses? This cannot be undone.')){ expenses=[]; save(); render(); } };
+
+/* ---------- auto sync triggers ---------- */
+window.addEventListener('online', () => sync());
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') sync(); });
+setInterval(() => { if(!dirty) sync(); }, 60000);   // auto-fetch latest CSV every minute
+
+/* ---------- saved GitHub settings (auto-reconnect on every open) ---------- */
+let unlocked = true;
+async function persistCfg(){
+  if(!cfg){ localStorage.removeItem(CFG_KEY); return; }
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));   // owner, repo, branch, path, token
+}
+function startApp(){
+  fillCfg(); render();
+  if(cfg){ sync(); } else { $('ghCard').hidden = false; }   // first time: show setup; later: auto-connect
+}
+startApp();
+</script>
+</body>
+</html>
